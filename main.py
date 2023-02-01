@@ -1,8 +1,8 @@
 import dearpygui.dearpygui as dpg
-from palette_generator import Palette
+from palette_generator import PaletteBuilder
 
 dpg.create_context()
-palette = Palette()
+palette = PaletteBuilder()
 
 
 def img_pick_callback(user_data, app_data):
@@ -17,7 +17,7 @@ def img_pick_callback(user_data, app_data):
     img_path = app_data.get('file_path_name')
     dpg.set_value(item='picked_img', value=app_data.get('file_name'))
 
-    palette.set_path(img_path)
+    palette.set_img(path_to_img=img_path)
     info = palette.org_img_info()
     dpg.set_value(item='img_name', value=f"File: {app_data.get('file_name')}")
     dpg.set_value(item='info_format', value=f"Format: {info.get('format')}")
@@ -26,29 +26,26 @@ def img_pick_callback(user_data, app_data):
 
 
 def palette_generate_callback():
-    palette.new_palette()
-    palette_preview_array = palette.palette_img_array()
+    palette_preview_array, palette_color_img_list, palette_colors = palette.new_palette()
     dpg.set_value('preview-palette', palette_preview_array)
 
-    palette_imgs = palette.palette_color_imgs
-    palette_colors = palette.palette
     for i in range(0, 5):
-        dpg.set_value(f'color-{i}', palette_imgs[i])
+        dpg.set_value(f'color-{i}', palette_color_img_list[i])
         dpg.set_value(f'color-{i}-value-rgb', f'rgb{palette_colors[i]}')
 
 
 # textures
 with dpg.texture_registry(show=False):
     # textures defined here, each for each color
-    h, w = 100, 100
+    h, w = 200, 100
     img_format = dpg.mvFormat_Float_rgb
-    dpg.add_raw_texture(width=w, height=h, default_value=[], format=img_format, tag='color-0')
-    dpg.add_raw_texture(width=w, height=h, default_value=[], format=img_format, tag='color-1')
-    dpg.add_raw_texture(width=w, height=h, default_value=[], format=img_format, tag='color-2')
-    dpg.add_raw_texture(width=w, height=h, default_value=[], format=img_format, tag='color-3')
-    dpg.add_raw_texture(width=w, height=h, default_value=[], format=img_format, tag='color-4')
-# preview palette texture
-    dpg.add_raw_texture(width=500, height=100, default_value=[], format=img_format, tag='preview-palette')
+    dpg.add_dynamic_texture(width=w, height=h, default_value=[], tag='color-0')
+    dpg.add_dynamic_texture(width=w, height=h, default_value=[], tag='color-1')
+    dpg.add_dynamic_texture(width=w, height=h, default_value=[], tag='color-2')
+    dpg.add_dynamic_texture(width=w, height=h, default_value=[], tag='color-3')
+    dpg.add_dynamic_texture(width=w, height=h, default_value=[], tag='color-4')
+    # preview palette texture
+    dpg.add_dynamic_texture(width=500, height=200, default_value=[], tag='preview-palette')
 
 # File Picker dialog for images
 with dpg.file_dialog(directory_selector=False, show=False, callback=img_pick_callback,
@@ -108,7 +105,7 @@ with dpg.window(tag='Auto Palettes'):
             dpg.add_button(label='Save as PNG')
 
 
-dpg.create_viewport(title='Auto Palettes', width=1100, height=480, resizable=True)
+dpg.create_viewport(title='Auto Palettes', width=1100, height=600, resizable=True)
 dpg.setup_dearpygui()
 dpg.show_viewport()
 dpg.set_primary_window('Auto Palettes', True)

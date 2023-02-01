@@ -2,58 +2,50 @@ import random as ra
 from PIL import Image
 import numpy as np
 
+# constants for images
+PALETTE_W = 500
+PALETTE_H = 200
 
-class Palette:
-    def __init__(self) -> None:
-        self.path = None
-        self.img = None
-        self.img_pixels = None
-        self.unique_pixels = None
-        self.palette = None
+COLOR_W = 100
+COLOR_H = 200
 
-        self.palette_image = None
-        self.palette_color_imgs = []
 
-    def set_path(self, path) -> None:
-        self.path = path
-        self.img = Image.open(fp=self.path)
-        self.img_pixels = set(self.img.getdata())
-        self.unique_pixels = list(self.img_pixels.union(self.img_pixels))
+class PaletteBuilder:
+    def __int__(self) -> None:
+        self.opened_img = None
+        self.unique_img_data = []
+        self.palette_colors = []
 
-    def new_palette(self) -> None:
-        # picks 5 random color from unique pixel data
-        self.palette = ra.sample(self.unique_pixels, 5)
-        self.palette_image = Image.new(size=(500, 100), mode='RGB', color=(0, 0, 0))
-        self.palette_color_imgs = []
-        self._get_palette_img()
+        # re-initialize the list, before using it
+        self.palette_color_img_list = []
 
-    def _get_palette_img(self) -> None:
-        count = 0
-        for color in self.palette:
-            color_img = Image.new(size=(100, 100), mode='RGB', color=color)
-            self.palette_color_imgs.append(np.asarray(color_img, dtype='float') / 255.0)
-            self.palette_image.paste(color_img, (count, 0))
-            count = count + 100
+    def set_img(self, path_to_img: str) -> None:
+        path = path_to_img
+        self.opened_img = Image.open(fp=path).convert('RGBA')
+        img_data = set(self.opened_img.getdata())  # to use for union
+        self.unique_img_data = list(img_data.union(img_data))  # to use for random sample
 
-    def palette_img_array(self) -> np.array:
-        # I had to divide values by 255 since PIL uses 0 to 255 and dearpygui seems
-        # to use 0.0 to 1.0
-        # dpg_image = numpy.frombuffer(image.tobytes(), dtype=numpy.uint8) / 255.0
-        # just for self note:
-        # LINK https://stackoverflow.com/questions/65880271/how-to-draw-a-pil-image-to-a-dearpygui-canvas
+    def new_palette(self) -> list:
+        if self.unique_img_data is not None:
 
-        return np.asarray(self.palette_image, dtype='float') / 255.0
+            # samples five random colors from the list
+            palette_colors = ra.sample(self.unique_img_data, 5)
+            palette_img = Image.new(size=(PALETTE_W, PALETTE_H), mode='RGBA', color=(0, 0, 0))
+            self.palette_color_img_list = []
 
-    def export_palette_img(self, export_path) -> None:
-        try:
-            self.palette_image.save(fp=export_path, type='PNG')
+            # builds the palette_img anf
+            count = 0
+            for color in palette_colors:
+                color_img = Image.new(size=(COLOR_W, COLOR_H), mode='RGBA', color=color)
+                self.palette_color_img_list.append(np.asarray(color_img, dtype=float) / 255.0)
+                palette_img.paste(color_img, (count, 0))
+                count = count + COLOR_W
 
-        except Exception as err:
-            raise Exception(err)
+            return [np.asarray(palette_img, dtype=float) / 255.0, self.palette_color_img_list, palette_colors]
 
     def org_img_info(self) -> dict:
-        size = self.img.size
-        mode = self.img.mode
-        img_format = self.img.format
+        size = self.opened_img.size
+        mode = self.opened_img.mode
+        img_format = self.opened_img.format
 
         return {'size': size, 'mode': mode, 'format': img_format}
